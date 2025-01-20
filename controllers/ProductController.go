@@ -4,22 +4,35 @@ import (
 	"go-ecommerce/config"
 	"go-ecommerce/models"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
 
 func GetProducts(c *gin.Context) {
 	var products []models.Product
+	var wg sync.WaitGroup
+	var err error
 
-	// Query untuk mendapatkan semua Product beserta relasi dengan Product Category
-	if err := config.DB.Preload("ProductCategory").Find(&products).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve products"})
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Query untuk mendapatkan semua Product beserta relasi dengan Product Category
+		if err = config.DB.Preload("ProductCategory").Find(&products).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve products"})
+			return
+		}
+	}()
+
+	wg.Wait()
+
+	if err != nil {
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Success",
-		"data": products,
+		"data":    products,
 	})
 }
 
@@ -36,7 +49,7 @@ func GetProductByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Success",
-		"data": product,
+		"data":    product,
 	})
 }
 
@@ -53,7 +66,7 @@ func GetProductsByCategory(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Success",
-		"data": products,
+		"data":    products,
 	})
 }
 
@@ -74,7 +87,7 @@ func CreateProduct(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Product created successfully",
-		"data": input,
+		"data":    input,
 	})
 }
 
@@ -122,7 +135,7 @@ func UpdateProduct(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Product updated successfully",
-		"data": product,
+		"data":    product,
 	})
 }
 
@@ -145,6 +158,6 @@ func DeleteProduct(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Product deleted successfully",
-		"data": product,
+		"data":    product,
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"go-ecommerce/config"
 	"go-ecommerce/models"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -111,10 +112,22 @@ func DeleteAccount(c *gin.Context) {
 
 func GetAllUsers(c *gin.Context) {
 	var users []models.User
+	var wg sync.WaitGroup
+	var err error
 
-	// Periksa apakah terdapat error saat mengambil data user
-	if err := config.DB.Find(&users).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Periksa apakah terdapat error saat mengambil data user
+		if err = config.DB.Find(&users).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
+			return
+		}
+	}()
+
+	wg.Wait()
+
+	if err != nil {
 		return
 	}
 

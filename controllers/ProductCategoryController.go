@@ -4,21 +4,35 @@ import (
 	"go-ecommerce/config"
 	"go-ecommerce/models"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
 
 func GetCategories(c *gin.Context) {
 	var categories []models.ProductCategory
+	var wg sync.WaitGroup
+	var err error
 
-	// Query untuk mendapatkan semua Product Category
-	if err := config.DB.Find(&categories).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch categories"})
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Query untuk mendapatkan semua Product Category
+		if err = config.DB.Find(&categories).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch categories"})
+			return
+		}
+	}()
+
+	wg.Wait()
+
+	if err != nil {
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Success",
-		"data": categories,
+		"data":    categories,
 	})
 }
 
@@ -36,9 +50,9 @@ func CreateCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create category"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Category created",
-		"data": input,
+		"data":    input,
 	})
 }

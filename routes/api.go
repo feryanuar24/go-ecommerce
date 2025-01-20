@@ -5,6 +5,9 @@ import (
 
 	"go-ecommerce/controllers"
 	"go-ecommerce/middlewares"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 func SetupRouter() *gin.Engine {
@@ -52,6 +55,9 @@ func SetupRouter() *gin.Engine {
 		transactionRoutes.GET("/:id", controllers.GetTransactionByID)
 		transactionRoutes.GET("/user/:user_id", controllers.GetTransactionsByUser)
 	}
+
+	// Profiling
+	r.GET("/debug/pprof/*pprof", gin.WrapH(http.DefaultServeMux))
 
 	return r
 }

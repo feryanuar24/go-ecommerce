@@ -4,6 +4,7 @@ import (
 	"go-ecommerce/config"
 	"go-ecommerce/models"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -77,10 +78,22 @@ func CreateTransaction(c *gin.Context) {
 
 func GetTransactions(c *gin.Context) {
 	var transactions []models.Transaction
+	var wg sync.WaitGroup
+	var err error
 
-	// Query transaksi beserta itemnya
-	if err := config.DB.Preload("User").Find(&transactions).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch transactions"})
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Query transaksi beserta itemnya
+		if err = config.DB.Preload("User").Find(&transactions).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch transactions"})
+			return
+		}
+	}()
+
+	wg.Wait()
+
+	if err != nil {
 		return
 	}
 
