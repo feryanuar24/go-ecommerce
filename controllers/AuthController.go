@@ -3,20 +3,16 @@ package controllers
 import (
 	"go-ecommerce/config"
 	"go-ecommerce/models"
+	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
-
-var jwtKey = []byte("feryanuar24")
-
-type Claims struct {
-	UserID uint `json:"user_id"`
-	jwt.StandardClaims
-}
 
 func Register(c *gin.Context) {
 	var input models.UserInput
@@ -45,17 +41,23 @@ func Register(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
+	// Load .env
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// Validasi input
 	var input struct {
 		Email    string `json:"email" binding:"required,email"`
 		Password string `json:"password" binding:"required"`
 	}
-
-	// Validasi input
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Cari user berdasarkan email
 	var user models.User
 
 	// Cari user berdasarkan email
@@ -70,9 +72,16 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// Buat claims JWT
+	type Claims struct {
+		UserID uint `json:"user_id"`
+		Role   string
+		jwt.StandardClaims
+	}
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
 		UserID: user.ID,
+		Role:   user.Role, // Tambahkan role pengguna ke dalam klaim
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -80,6 +89,7 @@ func Login(c *gin.Context) {
 
 	// Buat token JWT dengan claims
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	jwtKey := []byte(os.Getenv("JWT_SECRET"))
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})

@@ -1,14 +1,17 @@
 package middlewares
 
 import (
+	"go-ecommerce/config"
+	"go-ecommerce/models"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(requiredRole string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Ambil token dari header Authorization
 		authHeader := c.GetHeader("Authorization")
@@ -33,7 +36,7 @@ func AuthMiddleware() gin.HandlerFunc {
 				return nil, jwt.NewValidationError("invalid signing method", jwt.ValidationErrorSignatureInvalid)
 			}
 			// Kembalikan secret key
-			return []byte("feryanuar24"), nil
+			return []byte(os.Getenv("JWT_SECRET")), nil
 		})
 
 		if err != nil || !token.Valid {
@@ -53,6 +56,21 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Simpan userID ke context
 		userID := uint(claims["user_id"].(float64)) // Pastikan klaim user_id ada
 		c.Set("userID", userID)
+
+		// Cek role pengguna dari database
+		var user models.User
+		if err := config.DB.Where("id = ?", userID).First(&user).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			c.Abort()
+			return
+		}
+
+		// Periksa role pengguna
+		if user.Role != requiredRole {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to access this resource"})
+			c.Abort()
+			return
+		}
 
 		// Lanjutkan request
 		c.Next()

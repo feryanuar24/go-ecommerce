@@ -18,7 +18,7 @@ func SetupRouter() *gin.Engine {
 	}
 
 	// User
-	userRoutes := r.Group("/api/users", middlewares.AuthMiddleware())
+	userRoutes := r.Group("/api/users", middlewares.AuthMiddleware("Admin"))
 	{
 		userRoutes.GET("/", controllers.GetAllUsers)
 		userRoutes.GET("/:id", controllers.GetProfile)
@@ -27,7 +27,7 @@ func SetupRouter() *gin.Engine {
 	}
 
 	// Product
-	productRoutes := r.Group("/api/products", middlewares.AuthMiddleware())
+	productRoutes := r.Group("/api/products", middlewares.AuthMiddleware("Admin"))
 	{
 		productRoutes.GET("/", controllers.GetProducts)
 		productRoutes.GET("/:id", controllers.GetProductByID)
@@ -38,14 +38,14 @@ func SetupRouter() *gin.Engine {
 	}
 
 	// Product Category
-	productCategoryRoutes := r.Group("/api/product-categories", middlewares.AuthMiddleware())
+	productCategoryRoutes := r.Group("/api/product-categories", middlewares.AuthMiddleware("Admin"))
 	{
 		productCategoryRoutes.GET("/", controllers.GetCategories)
 		productCategoryRoutes.POST("/", controllers.CreateCategory)
 	}
 
 	// Transaction
-	transactionRoutes := r.Group("/api/transactions", middlewares.AuthMiddleware())
+	transactionRoutes := r.Group("/api/transactions", middlewares.AuthMiddleware("Pengguna"))
 	{
 		transactionRoutes.POST("/", controllers.CreateTransaction)
 		transactionRoutes.GET("/", controllers.GetTransactions)
