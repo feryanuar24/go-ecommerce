@@ -57,7 +57,6 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Cari user berdasarkan email
 	var user models.User
 
 	// Cari user berdasarkan email
